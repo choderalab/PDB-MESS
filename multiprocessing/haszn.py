@@ -1,22 +1,19 @@
 from __future__ import print_function
 import mdtraj as md
-import gzip
 import multiprocessing as mp
 import glob
 
 pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
 
 def haszn(i):
-    #def
-    unzip = gzip.open(i)
     try:
-        traj = md.load(unzip)
+        traj = md.load_pdb(i)
     except:
         return None
 
     topo = traj.topology
 
-    atoms = [x for x in topo.atoms]
+    atoms = [str(x) for x in topo.atoms]
     atomszn = [x for x in atoms if "ZN" in x]
 
     if atomszn:
@@ -26,11 +23,11 @@ def haszn(i):
 if __name__ == '__main__':
     manager = mp.Manager()
     znpdbs = manager.list()
-    pool = mp.Pool(processes = 32)
+    pool = mp.Pool(processes = 16)
     pool.map(haszn, glob.iglob(pdbpath))
 
 # get total pdb files no.
-alldatabase = glob.iglob(pdbpath)
+alldatabase = glob.glob(pdbpath)
 
 # write to file
 f = open('hasznresults.txt', 'w')
