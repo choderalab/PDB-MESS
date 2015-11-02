@@ -6,7 +6,7 @@ from ctypes import c_int
 import json
 
 pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
-processes = 2
+processes = 32
 
 def metalconect(i):
     pdbfile = gzip.open(i)
@@ -17,6 +17,7 @@ def metalconect(i):
     global metalpdbs
     global allinplace
     global listofcoordnos
+    global highcooordnospaths
     for line in pdbfile:
         fields = line.split()
         if hasmetal == False:
@@ -30,6 +31,7 @@ def metalconect(i):
                 if fields[2] == "MG":
                     listofmetals.append(fields[1])                
     
+    listofmetals = list(set(listofmetals))
     for metal in listofmetals:
         ligandsdict[metal] = 0
         
@@ -49,10 +51,14 @@ def metalconect(i):
              allinplace.value += 1
              
     for metal in ligandsdict:
-        listofcoordnos.append(ligandsdict[metal])         
-            
-    print(i)        
+        if ligandsdict[metal] > 10:
+            highcoordnospaths[i] = ligandsdict[metal]
+            listofcoordnos.append(ligandsdict[metal])         
+        else:
+            listofcoordnos.append(ligandsdict[metal])    
     
+    print(i)        
+    pdbfile.close()
     
 # multiprocessing
 if __name__ == '__main__':
@@ -61,6 +67,7 @@ if __name__ == '__main__':
     metalpdbs = mp.Value(c_int)
     allinplace = mp.Value(c_int)
     listofcoordnos = manager.list()
+    highcoordnospaths = manager.dict()
     pool = mp.Pool(processes)
     pool.map(metalconect, glob.iglob(pdbpath))
 
@@ -80,6 +87,9 @@ f.write(str(len(alldatabase)))
 f.write("\n")
 f.write("ligand coords list:\n")
 f.write(str(listofcoordnos))
+f.write("\n")
+f.write("coord nos over 10:\n")
+f.write(str(highcoordnospaths))
 f.close()
 # write listofcoordnos to json 
 #json.dump(listofcoordnos, open('listofcoordnos.json', 'w'))

@@ -5,11 +5,12 @@ import gzip
 from ctypes import c_int
 import json
 
-pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
-processes = 32
+pdbpath = './*.pdb'
+processes = 1
 
 def metalconect(i):
-    pdbfile = gzip.open(i)
+    #pdbfile = gzip.open(i)
+    pdbfile = open(i)
     listofmetals = []
     metalconectlist = []
     hasmetal = False
@@ -58,7 +59,7 @@ def metalconect(i):
             listofcoordnos.append(ligandsdict[metal])    
     
     print(i)        
-    pdbfile.close()
+    
     
 # multiprocessing
 if __name__ == '__main__':
