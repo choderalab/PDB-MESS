@@ -25,13 +25,33 @@ def ligand_scanner(file):
     extra_in_CONECT_for_file_analyzed = False
     both_extra_for_file_analyzed = False
     both_equal_for_file_analyzed = False
+    dictionary_of_process_counts = {}
     
+    # initialize the results dictionary (dictionary_of_process_counts)        
+    dictionary_of_process_counts['ok_file_count'] = ok_file_count
+    dictionary_of_process_counts['error_file_count'] = error_file_count
+    dictionary_of_process_counts['files_with_metal_count'] = files_with_metal_count
+    dictionary_of_process_counts['metal_count'] = metal_count
+    dictionary_of_process_counts['both_equal_count_by_atom'] = both_equal_count_by_atom
+    dictionary_of_process_counts['extra_in_cutoff_count_by_atom'] = extra_in_cutoff_count_by_atom
+    dictionary_of_process_counts['extra_in_CONECT_count_by_atom'] = extra_in_CONECT_count_by_atom
+    dictionary_of_process_counts['both_extra_CONECT_higher_count_by_atom'] = both_extra_CONECT_higher_count_by_atom
+    dictionary_of_process_counts['both_extra_cutoff_higher_count_by_atom'] = both_extra_cutoff_higher_count_by_atom
+    dictionary_of_process_counts['both_extra_both_equal_by_atom'] = both_extra_both_equal_by_atom
+    dictionary_of_process_counts['both_equal_count_by_file'] = both_equal_count_by_file
+    dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
+    dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
+    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file     
+    
+    # load file
     try:
         traj = md.load_pdb(file)
         ok_file_count += 1
+        dictionary_of_process_counts['ok_file_count'] = ok_file_count
     except:
         error_file_count += 1
-        return None
+        dictionary_of_process_counts['error_file_count'] = error_file_count
+        return dictionary_of_process_counts
 
     
     # Select atoms and pairs
@@ -42,9 +62,10 @@ def ligand_scanner(file):
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:
-        return None
+        return dictionary_of_process_counts
     
     files_with_metal_count += 1
+    metal_count += len(metal_atoms)
     
     # Prep dictionary with metal indices as keys
     for i in metal_atoms:
@@ -54,8 +75,6 @@ def ligand_scanner(file):
         metal_ligand_dict_in_CONECT_not_cutoff[i] = []
         metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i] = []
         
-        with lock:
-            metal_count += 1
         
     # Compute distances
     metal_all_distances = md.compute_distances(traj, metal_all_pairs)
@@ -130,11 +149,9 @@ def ligand_scanner(file):
                 if not both_extra_for_file_analyzed:
                     both_extra_count_by_file += 1
                     both_extra_for_file_analyzed = True
-                             
-    # build results dictionary
-    dictionary_of_process_counts = {}
-    dictionary_of_process_counts['ok_file_count'] = ok_file_count
-    dictionary_of_process_counts['error_file_count'] = error_file_count
+    
+    # update the results dictionary (ok_file_count and error_file_count have already been done)
+
     dictionary_of_process_counts['files_with_metal_count'] = files_with_metal_count
     dictionary_of_process_counts['metal_count'] = metal_count
     dictionary_of_process_counts['both_equal_count_by_atom'] = both_equal_count_by_atom
@@ -146,7 +163,8 @@ def ligand_scanner(file):
     dictionary_of_process_counts['both_equal_count_by_file'] = both_equal_count_by_file
     dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
     dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
-    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file                          
+    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file                               
+                
                                                           
     print(file)
     return dictionary_of_process_counts                                                      
@@ -170,19 +188,15 @@ def ligand_scanner_all_database(pdbpath):
     dictionary_of_database_results['both_extra_count_by_file'] = 0  
     
     for dictionary_of_process_counts in pool.map(ligand_scanner, glob.iglob(pdbpath)):
-        
-        if dictionary_of_process_counts is not None:
-            
-            for i in dictionary_of_process_counts:
-                dictionary_of_database_results[i] += dictionary_of_process_counts[i]
+        for i in dictionary_of_process_counts:
+            dictionary_of_database_results[i] += dictionary_of_process_counts[i]
             
     return dictionary_of_database_results
     
 # Multiprocess set-up
 if __name__ == '__main__':
-    lock = mp.Lock()
-    pool = mp.Pool(processes = ppn)
     
+    pool = mp.Pool(processes = ppn)
     dictionary_of_database_results = ligand_scanner_all_database(pdbpath)
     
 
