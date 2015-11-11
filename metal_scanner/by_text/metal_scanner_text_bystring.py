@@ -17,7 +17,8 @@ def metal_scanner(file):
         
         if metal_name in fields:
             contains_metal = True
-            
+    
+    print(contains_metal)        
     return contains_metal
     
 def database_analyzer(pdbpath):
@@ -42,13 +43,13 @@ if __name__ == '__main__':
                     
 # write results
 with open('metal_scanner_results.txt', 'w') as f:
-    f.write('All files analyzed:\n') % 
+    f.write('All files analyzed:\n')  
     f.write(str(files_w_metal + files_wo_metal))
     f.write('\n')
     f.write('All files in the database:\n')
-    f.write(str(len(glob.glob(pdbpath)))
+    f.write(str(len(glob.glob(pdbpath))))
     f.write('\n')
-    f.write('Files containing %s \n' % metal_name):
+    f.write('Files containing %s: \n' % metal_name)
     f.write(str(files_w_metal))
     f.write('\n')
                    
