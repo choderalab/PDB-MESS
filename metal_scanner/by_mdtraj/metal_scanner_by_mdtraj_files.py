@@ -15,7 +15,7 @@ def metal_scanner(file):
     except:
         return [None, file]    
     
-    if [atom for atom in traj.top.atoms if atom.name == 'ZN']:
+    if [atom for atom in traj.top.atoms if atom.name == 'ZN' and atom.residue.name == 'ZN']:
       contains_metal[0] = True
     
     print(contains_metal)        
