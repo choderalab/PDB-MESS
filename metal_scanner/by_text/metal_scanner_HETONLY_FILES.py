@@ -205,14 +205,14 @@ mdtraj_noload_pdbs = ['/cbio/jclab/share/pdb/ar/pdb2arf.ent.gz',
 
 def metal_scanner(file):
     
-    metal_scanner_data = 0
+    metal_scanner_data = [0, file]
     pdbfile = gzip.open(file)
     
     for line in pdbfile:
         fields = line.split()
         
         if fields[0] == 'HET' and fields[1] == metal_name:
-            metal_scanner_data = 1
+            metal_scanner_data[0] = 1
         #if 'HETATM' in line and fields[2] == metal_name:
         #    metal_scanner_data[1] = 1    
     
@@ -221,18 +221,19 @@ def metal_scanner(file):
     
 def database_analyzer(pdbpath):
     
-    files_w_HET = 0
-    all_files = 0
+    database_analyzer_data = [0, []]
+    #all_files = 0
     #files_w_HETATM = 0
     
     for metal_scanner_data in pool.map(metal_scanner, pdbs):
-        all_files += 1
-        if metal_scanner_data == 1:
-            files_w_HET += 1
+        #all_files += 1
+        if metal_scanner_data[0] == 1:
+            database_analyzer_data[0] += 1
+            database_analyzer_data[1].append(metal_scanner_data[1])
         #if metal_scanner_data[1] == 1:
         #    files_w_HETATM += 1       
             
-    return all_files, files_w_HET      
+    return database_analyzer_data   
             
 # Multiprocess set-up
 if __name__ == '__main__':
@@ -242,11 +243,11 @@ if __name__ == '__main__':
     pdbs = [x for x in pdbs if x not in mdtraj_noload_pdbs]
     
     pool = mp.Pool(processes = ppn)
-    allfiles, files_w_HET = database_analyzer(pdbpath)       
+    database_analyzer_data = database_analyzer(pdbpath)       
     
                     
 # write results
-with open('12Nov15FINALWITHOUTMDTRAJ_metal_scanner_results_by_text_bysection.txt', 'w') as f:
+with open('12Nov15FILES_metal_scanner_HETONLY_results.txt', 'w') as f:
     f.write("metal_name\n")
     f.write(metal_name)
     f.write("\n")
@@ -254,12 +255,16 @@ with open('12Nov15FINALWITHOUTMDTRAJ_metal_scanner_results_by_text_bysection.txt
     f.write(str(len(glob.glob(pdbpath))))
     f.write('\n')
     f.write("Files with metal in HET:\n")
-    f.write(str(files_w_HET))
+    f.write(str(database_analyzer_data[0]))
     f.write('\n')
-    f.write('All files read:\n')
-    f.write(str(allfiles))
-    f.write('\n')
+    #f.write('All files read:\n')
+    #f.write(str(allfiles))
+    #f.write('\n')
     #f.write("Files with metal in HETATM:\n")
     #f.write(str(files_w_HETATM))
     #f.close()
                    
+    f.write('File paths\n')
+    for line in database_analyzer_data[1]:
+        f.write(str(line))
+        f.write('\n')               

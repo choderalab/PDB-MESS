@@ -3,13 +3,20 @@ import multiprocessing as mp
 import glob
 import mdtraj as md
 
-pdbpath = '/Users/rafalpwiewiora/PDB/pdb/*/*.ent.gz'
-ppn = 8
-metal_name = 'ZN'
+pdbpath = '/Users/rafalpwiewiora/PDB/pdb/a*/*.ent.gz'
+ppn = 6
+#metal_name = 'ZN'
 
 def loader(file):
 
-    md.load_pdb(file)
+    try:
+        md.load_pdb(file)
+    except:
+        return None
+            
+    print(file)
+    
+    return None
     #try:
     #    traj = md.load_pdb(file)
     #except:    
