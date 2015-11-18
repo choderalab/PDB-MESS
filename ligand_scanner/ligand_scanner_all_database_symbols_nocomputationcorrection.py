@@ -58,7 +58,7 @@ def ligand_scanner(file):
     topo = traj.topology
     metal_select_name = 'name %s and resname %s' % (metal_name, metal_name)
     metal_atoms = topo.select(metal_select_name)
-    metal_all_pairs = topo.select_pairs(metal_select_name, 'all')
+    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl')
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:

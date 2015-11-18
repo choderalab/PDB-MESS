@@ -3,10 +3,10 @@ import mdtraj as md
 import glob
 import multiprocessing as mp
 
-pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
+pdbpath = '/Users/rafalpwiewiora/sandbox/extra_in_cutoff/files/*.ent'
 cutoff = 0.3
 metal_name = 'ZN'
-ppn = 32
+ppn = 8
 
 
 def ligand_scanner(file):
@@ -15,6 +15,7 @@ def ligand_scanner(file):
     extra_in_cutoff_count_by_atom, extra_in_CONECT_count_by_atom, both_extra_CONECT_higher_count_by_atom = 0, 0, 0
     both_extra_cutoff_higher_count_by_atom, both_extra_both_equal_by_atom, extra_in_cutoff_count_by_file = 0, 0, 0
     extra_in_CONECT_count_by_file, both_extra_count_by_file, both_equal_count_by_atom, both_equal_count_by_file = 0, 0, 0, 0
+    extra_residues_by_atom = []
     
     metal_ligand_dict_by_cutoff = {}
     metal_ligand_dict_by_CONECT = {}
@@ -42,6 +43,7 @@ def ligand_scanner(file):
     dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
     dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
     dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file     
+    dictionary_of_process_counts['extra_residues_by_atom'] = extra_residues_by_atom
     
     # load file
     try:
@@ -58,7 +60,7 @@ def ligand_scanner(file):
     topo = traj.topology
     metal_select_name = 'name %s and resname %s' % (metal_name, metal_name)
     metal_atoms = topo.select(metal_select_name)
-    metal_all_pairs = topo.select_pairs(metal_select_name, 'all')
+    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl')
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:
@@ -117,6 +119,9 @@ def ligand_scanner(file):
         
         elif metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i] and not metal_ligand_dict_in_CONECT_not_cutoff[i]:
             extra_in_cutoff_count_by_atom += 1
+            extra_residues_by_atom.append([])
+            for atom_index in metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i]:
+                extra_residues_by_atom[-1].append(topo.atom(atom_index).name)
             if not extra_in_cutoff_for_file_analyzed:
                 extra_in_cutoff_count_by_file += 1
                 extra_in_cutoff_for_file_analyzed = True
@@ -163,7 +168,8 @@ def ligand_scanner(file):
     dictionary_of_process_counts['both_equal_count_by_file'] = both_equal_count_by_file
     dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
     dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
-    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file                               
+    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file           
+    dictionary_of_process_counts['extra_residues_by_atom'] = extra_residues_by_atom                    
                 
                                                           
     print(file)
@@ -186,6 +192,7 @@ def ligand_scanner_all_database(pdbpath):
     dictionary_of_database_results['extra_in_cutoff_count_by_file'] = 0
     dictionary_of_database_results['extra_in_CONECT_count_by_file'] = 0
     dictionary_of_database_results['both_extra_count_by_file'] = 0  
+    dictionary_of_database_results['extra_residues_by_atom'] = []
     
     for dictionary_of_process_counts in pool.map(ligand_scanner, glob.iglob(pdbpath)):
         for i in dictionary_of_process_counts:

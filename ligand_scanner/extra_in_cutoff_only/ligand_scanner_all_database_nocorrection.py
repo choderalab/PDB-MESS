@@ -3,10 +3,10 @@ import mdtraj as md
 import glob
 import multiprocessing as mp
 
-pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
+pdbpath = '/Users/rafalpwiewiora/sandbox/extra_in_cutoff/files/*.ent'
 cutoff = 0.3
 metal_name = 'ZN'
-ppn = 32
+ppn = 8
 
 
 def ligand_scanner(file):
@@ -58,7 +58,7 @@ def ligand_scanner(file):
     topo = traj.topology
     metal_select_name = 'name %s and resname %s' % (metal_name, metal_name)
     metal_atoms = topo.select(metal_select_name)
-    metal_all_pairs = topo.select_pairs(metal_select_name, 'all')
+    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl')
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:
@@ -100,11 +100,11 @@ def ligand_scanner(file):
         metal_ligand_dict_in_cutoff_not_CONECT[i] = [x for x in metal_ligand_dict_by_cutoff[i] if x not in metal_ligand_dict_by_CONECT[i]]
         metal_ligand_dict_in_CONECT_not_cutoff[i] = [x for x in metal_ligand_dict_by_CONECT[i] if x not in metal_ligand_dict_by_cutoff[i]]    
     
-    for i in metal_atoms:
-        for j in metal_ligand_dict_in_cutoff_not_CONECT[i]:
-            if not any(topo.atom(j).residue == topo.atom(k).residue for k in metal_ligand_dict_by_CONECT[i]):
-                metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i].append(j)
-    
+    #for i in metal_atoms:
+    #    for j in metal_ligand_dict_in_cutoff_not_CONECT[i]:
+#            if not any(topo.atom(j).residue == topo.atom(k).residue for k in metal_ligand_dict_by_CONECT[i]):
+#                metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i].append(j)
+    metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT = metal_ligand_dict_in_cutoff_not_CONECT
     
     # compare the cutoff and CONECT data and make conclusions
     for i in metal_atoms:

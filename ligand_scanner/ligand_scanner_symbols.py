@@ -11,10 +11,17 @@ ppn = 32
 
 def ligand_scanner(file):
     
+    print(file)
+    
     ok_file_count, error_file_count, metal_count, files_with_metal_count = 0, 0, 0, 0
     extra_in_cutoff_count_by_atom, extra_in_CONECT_count_by_atom, both_extra_CONECT_higher_count_by_atom = 0, 0, 0
     both_extra_cutoff_higher_count_by_atom, both_extra_both_equal_by_atom, extra_in_cutoff_count_by_file = 0, 0, 0
     extra_in_CONECT_count_by_file, both_extra_count_by_file, both_equal_count_by_atom, both_equal_count_by_file = 0, 0, 0, 0
+    CONECT_ligand_numbers = []
+    extra_in_cutoff_atoms_residues = []
+    CONECT_only_ligand_numbers = []
+    CONECT_and_extra_ligand_numbers = []
+    
     
     metal_ligand_dict_by_cutoff = {}
     metal_ligand_dict_by_CONECT = {}
@@ -42,6 +49,11 @@ def ligand_scanner(file):
     dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
     dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
     dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file     
+    dictionary_of_process_counts['CONECT_ligand_numbers'] = CONECT_ligand_numbers
+    dictionary_of_process_counts['extra_in_cutoff_atoms_residues'] = extra_in_cutoff_atoms_residues
+    dictionary_of_process_counts['CONECT_only_ligand_numbers'] = CONECT_only_ligand_numbers
+    dictionary_of_process_counts['CONECT_and_extra_ligand_numbers'] = CONECT_and_extra_ligand_numbers
+    
     
     # load file
     try:
@@ -58,7 +70,7 @@ def ligand_scanner(file):
     topo = traj.topology
     metal_select_name = 'name %s and resname %s' % (metal_name, metal_name)
     metal_atoms = topo.select(metal_select_name)
-    metal_all_pairs = topo.select_pairs(metal_select_name, 'all')
+    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl')
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:
@@ -77,7 +89,12 @@ def ligand_scanner(file):
         
         
     # Compute distances
-    metal_all_distances = md.compute_distances(traj, metal_all_pairs, periodic = False)
+    try:
+        metal_all_distances = md.compute_distances(traj, metal_all_pairs, periodic = False)
+    except:
+        error_file_count += 1
+        dictionary_of_process_counts['error_file_count'] = error_file_count
+        return dictionary_of_process_counts   
     
     # Populate the metal_ligand_dict_by_cutoff with atoms closer than cutoff
     for i in range(len(metal_all_distances[0])):
@@ -88,12 +105,15 @@ def ligand_scanner(file):
                 metal_ligand_dict_by_cutoff[metal_all_pairs[i, 1]].append(metal_all_pairs[i, 0])
                 
     # Look at the CONECT record through topology.bonds
-    for i in metal_ligand_dict_by_CONECT:
+    for i in metal_atoms:
         for bond in topo.bonds:
             if bond[0].index == i:
                 metal_ligand_dict_by_CONECT[i].append(bond[1].index)
             elif bond[1].index == i:
                 metal_ligand_dict_by_CONECT[i].append(bond[0].index)
+                
+    for i in metal_atoms:
+        CONECT_ligand_numbers.append(len(metal_ligand_dict_by_CONECT[i]))            
                 
     # Compare the contents of metal_ligand_dict_by_cutoff and metal_ligand_dict_by_CONECT, correct for cutoff recognizing extra atoms for residues already in CONECT
     for i in metal_atoms:
@@ -111,12 +131,20 @@ def ligand_scanner(file):
         
         if not metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i] and not metal_ligand_dict_in_CONECT_not_cutoff[i]:
             both_equal_count_by_atom += 1
+            CONECT_only_ligand_numbers.append(len(metal_ligand_dict_by_CONECT[i]))
+            
             if not both_equal_for_file_analyzed:
                 both_equal_count_by_file += 1
                 both_equal_for_file_analyzed = True
         
         elif metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i] and not metal_ligand_dict_in_CONECT_not_cutoff[i]:
             extra_in_cutoff_count_by_atom += 1
+            extra_in_cutoff_atoms_residues.append([])
+            for j in metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i]:
+                extra_in_cutoff_atoms_residues[-1].append((topo.atom(j).residue.name, topo.atom(j).name))
+                
+            CONECT_and_extra_ligand_numbers.append(len(metal_ligand_dict_by_CONECT[i]) + len(metal_ligand_dict_CORRECTED_in_cutoff_not_CONECT[i]))    
+                
             if not extra_in_cutoff_for_file_analyzed:
                 extra_in_cutoff_count_by_file += 1
                 extra_in_cutoff_for_file_analyzed = True
@@ -163,10 +191,14 @@ def ligand_scanner(file):
     dictionary_of_process_counts['both_equal_count_by_file'] = both_equal_count_by_file
     dictionary_of_process_counts['extra_in_cutoff_count_by_file'] = extra_in_cutoff_count_by_file
     dictionary_of_process_counts['extra_in_CONECT_count_by_file'] = extra_in_CONECT_count_by_file
-    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file                               
+    dictionary_of_process_counts['both_extra_count_by_file'] = both_extra_count_by_file   
+    dictionary_of_process_counts['CONECT_ligand_numbers'] = CONECT_ligand_numbers
+    dictionary_of_process_counts['extra_in_cutoff_atoms_residues'] = extra_in_cutoff_atoms_residues
+    dictionary_of_process_counts['CONECT_only_ligand_numbers'] = CONECT_only_ligand_numbers
+    dictionary_of_process_counts['CONECT_and_extra_ligand_numbers'] = CONECT_and_extra_ligand_numbers
                 
                                                           
-    print(file)
+    print(dictionary_of_process_counts)
     return dictionary_of_process_counts                                                      
                      
 def ligand_scanner_all_database(pdbpath):
@@ -186,6 +218,10 @@ def ligand_scanner_all_database(pdbpath):
     dictionary_of_database_results['extra_in_cutoff_count_by_file'] = 0
     dictionary_of_database_results['extra_in_CONECT_count_by_file'] = 0
     dictionary_of_database_results['both_extra_count_by_file'] = 0  
+    dictionary_of_database_results['CONECT_ligand_numbers'] = []
+    dictionary_of_database_results['extra_in_cutoff_atoms_residues'] = []
+    dictionary_of_database_results['CONECT_and_extra_ligand_numbers'] = []
+    dictionary_of_database_results['CONECT_only_ligand_numbers'] = []
     
     for dictionary_of_process_counts in pool.map(ligand_scanner, glob.iglob(pdbpath)):
         for i in dictionary_of_process_counts:
