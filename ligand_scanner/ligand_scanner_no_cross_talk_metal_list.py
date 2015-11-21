@@ -3,7 +3,8 @@ import mdtraj as md
 import glob
 import multiprocessing as mp
 
-pdbpath = '/cbio/jclab/share/pdb/*/*.ent.gz'
+pdblist_file = open('pdblist.txt')
+pdblist = [line[:-1] for line in pdblist_file]
 cutoff = 0.3
 metal_name = 'ZN'
 ppn = 32
@@ -91,10 +92,10 @@ def ligand_scanner(file):
         ligand_numbers.append((file, i, len(metal_ligand_dict_by_CONECT[i]), len(metal_ligand_dict_by_cutoff[i])))
         
         for j in metal_ligand_dict_by_CONECT[i]:
-            CONECT_atoms.append((file, i, str(topo.atom(j)))
+            CONECT_atoms.append((file, i, str(topo.atom(j))))
         
         for j in metal_ligand_dict_by_cutoff[i]:
-            CUTOFF_atoms.append((file, i, str(topo.atom(j)))
+            CUTOFF_atoms.append((file, i, str(topo.atom(j))))
         
 
     # update the results dictionary (ok_file_count and error_file_count have already been done)
@@ -111,7 +112,7 @@ def ligand_scanner(file):
     print(dictionary_of_process_counts)
     return dictionary_of_process_counts                                                      
                      
-def ligand_scanner_all_database(pdbpath):
+def ligand_scanner_all_database(pdblist):
     
     dictionary_of_database_results = {}
     dictionary_of_database_results['ok_file_count'] = 0
@@ -123,7 +124,7 @@ def ligand_scanner_all_database(pdbpath):
     dictionary_of_database_results['CUTOFF_atoms'] = []
     
     
-    for dictionary_of_process_counts in pool.map(ligand_scanner, glob.iglob(pdbpath)):
+    for dictionary_of_process_counts in pool.map(ligand_scanner, pdblist):
         for i in dictionary_of_process_counts:
             dictionary_of_database_results[i] += dictionary_of_process_counts[i]
             
@@ -133,7 +134,7 @@ def ligand_scanner_all_database(pdbpath):
 if __name__ == '__main__':
     
     pool = mp.Pool(processes = ppn)
-    dictionary_of_database_results = ligand_scanner_all_database(pdbpath)
+    dictionary_of_database_results = ligand_scanner_all_database(pdblist)
     
 
 # Write results
