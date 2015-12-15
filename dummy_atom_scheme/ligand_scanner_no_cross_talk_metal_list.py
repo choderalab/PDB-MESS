@@ -20,11 +20,6 @@ def ligand_scanner(file):
     ligand_numbers = []
     CONECT_atoms = []
     CUTOFF_atoms = []
-    double_atoms = []
-    CONECT_residues = []
-    CUTOFF_residues = []
-    metal_ligand_dict_cutoff_analysis = {}
-    metal_ligand_cutoff_analysis = []
     
     dictionary_of_process_counts = {}
     
@@ -36,11 +31,6 @@ def ligand_scanner(file):
     dictionary_of_process_counts['ligand_numbers'] = ligand_numbers
     dictionary_of_process_counts['CONECT_atoms'] = CONECT_atoms
     dictionary_of_process_counts['CUTOFF_atoms'] = CUTOFF_atoms
-    dictionary_of_process_counts['double_atoms'] = double_atoms
-    dictionary_of_process_counts['CONECT_residues'] = CONECT_residues
-    dictionary_of_process_counts['CUTOFF_residues'] = CUTOFF_residues
-    dictionary_of_process_counts['metal_ligand_cutoff_analysis'] = metal_ligand_cutoff_analysis
-    
     
     
     # load file
@@ -58,7 +48,7 @@ def ligand_scanner(file):
     topo = traj.topology
     metal_select_name = 'name %s and resname %s' % (metal_name, metal_name)
     metal_atoms = topo.select(metal_select_name)
-    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl or symbol F')
+    metal_all_pairs = topo.select_pairs(metal_select_name, 'symbol O or symbol N or symbol S or symbol Cl')
     
     # No metal - skip, metal - add to count 
     if not metal_atoms.size:
@@ -97,44 +87,15 @@ def ligand_scanner(file):
             elif bond[1].index == i:
                 metal_ligand_dict_by_CONECT[i].append(bond[0].index)
                 
-                
-                
-    # Further analysis on CUTOFF - 1) Find: HOH-O, CYS-S, HIS-N, ASP-O, GLU-O (but only one for those) - so count as 'residues' rather than atoms (to correct for the ASP and GLU)
-    # 2) See if there are any extras in the cutoff of elements O, Cl or F
-    
-    for i in metal_atoms:
-        
-        metal_ligand_dict_cutoff_analysis[i] = [[], 0, 0]
-        
-        for j in metal_ligand_dict_by_cutoff[i]:
-            metal_ligand_dict_cutoff_analysis[i][0].append((topo.atom(j).residue, topo.atom(j).chain))
-        metal_ligand_dict_cutoff_analysis[i][0] = list(set(metal_ligand_dict_cutoff_analysis[0]))    
-        
-        for k in metal_ligand_dict_cutoff_analysis[i][0]:
-            if k[0].name == 'ASP' or k[0].name == 'GLU' or k[0].name == 'HOH' or k[0].name == 'HIS' or k[0].name == 'CYS':
-                metal_ligand_dict_cutoff_analysis[i][1] += 1
-            else:
-                metal_ligand_dict_cutoff_analysis[i][2] += 1    
-                
-    for i in metal_atoms:
-        metal_ligand_cutoff_analysis.append(metal_ligand_dict_cutoff_analysis[i])
-        
-                    
     # Compare the performance of CONECT and CUTOFF
     for i in metal_atoms:
         ligand_numbers.append((file, i, len(metal_ligand_dict_by_CONECT[i]), len(metal_ligand_dict_by_cutoff[i])))
         
         for j in metal_ligand_dict_by_CONECT[i]:
-            CONECT_atoms.append((file, i, str(topo.atom(j)), topo.atom(j).element))
-            for k in (k for k in metal_ligand_dict_by_CONECT[i] if k != j):
-                if topo.atom(j).residue == topo.atom(k).residue:
-                    double_atoms.append((str(topo.atom(j)), str(topo.atom(k))))
-            CONECT_residues.append((file, i, str(topo.atom(j).residue.name)))        
-            
+            CONECT_atoms.append((file, i, str(topo.atom(j))))
         
         for j in metal_ligand_dict_by_cutoff[i]:
-            CUTOFF_atoms.append((file, i, str(topo.atom(j)), topo.atom(j).element))
-            CUTOFF_residues.append((file, i, str(topo.atom(j).residue.name)))
+            CUTOFF_atoms.append((file, i, str(topo.atom(j))))
         
 
     # update the results dictionary (ok_file_count and error_file_count have already been done)
@@ -146,10 +107,6 @@ def ligand_scanner(file):
     dictionary_of_process_counts['ligand_numbers'] = ligand_numbers
     dictionary_of_process_counts['CONECT_atoms'] = CONECT_atoms
     dictionary_of_process_counts['CUTOFF_atoms'] = CUTOFF_atoms
-    dictionary_of_process_counts['double_atoms'] = double_atoms
-    dictionary_of_process_counts['CONECT_residues'] = CONECT_residues
-    dictionary_of_process_counts['CUTOFF_residues'] = CUTOFF_residues
-    dictionary_of_process_counts['metal_ligand_cutoff_analysis'] = metal_ligand_cutoff_analysis
                 
                                                           
     print(dictionary_of_process_counts)
@@ -165,11 +122,7 @@ def ligand_scanner_all_database(pdblist):
     dictionary_of_database_results['ligand_numbers'] = []
     dictionary_of_database_results['CONECT_atoms'] = []
     dictionary_of_database_results['CUTOFF_atoms'] = []
-    dictionary_of_database_results['double_atoms'] = []
-    dictionary_of_database_results['CONECT_residues'] = []
-    dictionary_of_database_results['CUTOFF_residues'] = []
-    dictionary_of_database_results['metal_ligand_cutoff_analysis'] = metal_ligand_cutoff_analysis
-     
+    
     
     for dictionary_of_process_counts in pool.map(ligand_scanner, pdblist):
         for i in dictionary_of_process_counts:
@@ -185,6 +138,6 @@ if __name__ == '__main__':
     
 
 # Write results
-f = open('ligand_scanner_towards_dummy_scheme.txt', 'w')
+f = open('ligand_scanner_results_no_cross_talk.txt', 'w')
 f.write(str(dictionary_of_database_results))
 f.close()

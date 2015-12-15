@@ -7,7 +7,7 @@ pdblist_file = open('pdblist.txt')
 pdblist = [line[:-1] for line in pdblist_file]
 cutoff = 0.3
 metal_name = 'ZN'
-ppn = 32
+ppn = 8
 
 
 def ligand_scanner(file):
@@ -107,8 +107,8 @@ def ligand_scanner(file):
         metal_ligand_dict_cutoff_analysis[i] = [[], 0, 0]
         
         for j in metal_ligand_dict_by_cutoff[i]:
-            metal_ligand_dict_cutoff_analysis[i][0].append((topo.atom(j).residue, topo.atom(j).chain))
-        metal_ligand_dict_cutoff_analysis[i][0] = list(set(metal_ligand_dict_cutoff_analysis[0]))    
+            metal_ligand_dict_cutoff_analysis[i][0].append((topo.atom(j).residue, topo.atom(j).residue.chain))
+        metal_ligand_dict_cutoff_analysis[i][0] = list(set(metal_ligand_dict_cutoff_analysis[i][0]))    
         
         for k in metal_ligand_dict_cutoff_analysis[i][0]:
             if k[0].name == 'ASP' or k[0].name == 'GLU' or k[0].name == 'HOH' or k[0].name == 'HIS' or k[0].name == 'CYS':
@@ -168,7 +168,7 @@ def ligand_scanner_all_database(pdblist):
     dictionary_of_database_results['double_atoms'] = []
     dictionary_of_database_results['CONECT_residues'] = []
     dictionary_of_database_results['CUTOFF_residues'] = []
-    dictionary_of_database_results['metal_ligand_cutoff_analysis'] = metal_ligand_cutoff_analysis
+    dictionary_of_database_results['metal_ligand_cutoff_analysis'] = []
      
     
     for dictionary_of_process_counts in pool.map(ligand_scanner, pdblist):
